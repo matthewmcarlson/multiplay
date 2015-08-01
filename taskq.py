@@ -3,8 +3,16 @@
 from multiprocessing import Process, Queue, Pool
 from time import sleep
 
-def f(q, done, err):
+workq = Queue()
+doneq = Queue()
+errq = Queue()
+
+def f():
     retries=0
+    q = workq
+    done = doneq
+    err = errq
+
     while True:
         ### get an item from the queue
         try:
@@ -19,14 +27,14 @@ def f(q, done, err):
             try:
                 i = process(i)
                 print ', putting', i
-            except Exception as e:
+            except Exception as e:  ### This shouldn't be a pokemon exception
                 err.put((i, e))
             ### put it back in the queue
             if i:
                 q.put(i)
             ### Or mark it as done
             else:
-                done.put()
+                done.put(i)
         if retries==10:
             break
 
@@ -35,10 +43,6 @@ def process(i):
     return i+1
 
 if __name__ == '__main__':
-    workq = Queue()
-    doneq = Queue()
-    errq = Queue()
-
     ###Dummy data
     workq.put(-1)
     workq.put(120)
@@ -47,7 +51,7 @@ if __name__ == '__main__':
     workq.put(1)
 
     pool = Pool(processes=4)
-    pool.apply(f, (workq, doneq, errq))
+    pool.apply(f)
     pool.join()
 
     #p = Process(target=f, args=(workq, doneq, errq))
